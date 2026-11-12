@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nuestro mapa de recuerdos</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Lora:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f3e6c8;--ink:#4a2f1b;--red:#b23a3a;--gold:#c99a2e}
+*{box-sizing:border-box}body{margin:0;background:#2b1d12;font-family:Lora,serif;color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px}
+h1{font-family:Caveat,cursive;color:var(--paper);font-size:2.6rem;margin:4px 0 0;text-align:center}
+.sub{color:#e7d3a8;margin:0 0 12px;text-align:center}
+.bar{width:min(900px,100%);height:10px;background:#5a4029;border-radius:6px;overflow:hidden;margin-bottom:12px}.bar i{display:block;height:100%;background:var(--gold);transition:width .5s}
+.mapwrap{position:relative;width:min(900px,100%);background:radial-gradient(circle at 30% 30%,#f8eed6,var(--paper) 60%,#dcc597);border-radius:14px;box-shadow:0 10px 40px #0008, inset 0 0 60px #a0773f88;padding:10px}
+svg{width:100%;height:auto;display:block}
+.land{fill:#e8d3a2;stroke:var(--ink);stroke-width:2;stroke-dasharray:6 3}
+.pin{cursor:pointer}.pin circle{transition:transform .2s;transform-box:fill-box;transform-origin:center}.pin:hover circle{transform:scale(1.3)}.next circle{animation:lat 1s infinite}@keyframes lat{50%{transform:scale(1.35)}}
+.lbl{font-family:Caveat,cursive;font-size:22px;fill:var(--ink)}
+.inset{fill:#efe0bb;stroke:var(--ink);stroke-width:2}
+.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:16px;z-index:5}.modal.on{display:flex}
+.card{background:var(--paper);border-radius:14px;max-width:420px;width:100%;max-height:90vh;overflow:auto;padding:22px;box-shadow:0 10px 40px #000;position:relative}
+.card h2{font-family:Caveat,cursive;font-size:2rem;margin:0 0 6px}
+.card input{width:100%;padding:10px;border:2px solid var(--ink);border-radius:8px;font:inherit;font-size:16px;background:#fffaf0;color:#4a2f1b;-webkit-text-fill-color:#4a2f1b;caret-color:#b23a3a;color-scheme:light}.card input::placeholder{color:#9b8468;-webkit-text-fill-color:#9b8468}
+.card button{margin-top:10px;padding:10px 16px;border:0;border-radius:8px;background:var(--red);color:#fff;font:inherit;cursor:pointer}
+.x{position:absolute;top:8px;right:12px;background:none!important;color:var(--ink)!important;font-size:1.4rem;margin:0!important}
+.err{color:var(--red);min-height:1.2em;font-size:.9rem}
+</style></head><body>
+<h1>Nuestro mapa de recuerdos</h1>
+<p class="sub">Misión: demostrar que te acuerdas de todo. Sin presión 😇</p>
+<div class="bar"><i id="prog"></i></div>
+<div class="mapwrap"><svg id="map" viewBox="0 0 900 680"></svg></div>
+<button id="reset" style="margin-top:14px;background:none;border:1px solid #e7d3a888;color:#e7d3a8;border-radius:8px;padding:6px 12px;font:inherit;font-size:.85rem;cursor:pointer;opacity:.6">↺ Empezar de nuevo</button>
+<div class="modal" id="modal"><div class="card" id="card"></div></div>
+<script>
+(0,eval)(new TextDecoder().decode(Uint8Array.from(atob("dmFyIExVR0FSRVM9Wwoge2lkOiJlb2kiLG5vbWJyZToiRU9JIFZhbGRlbW9ybyIsbGF0OjQwLjE5Nixsb246LTMuNjY0LGhpc3RvcmlhOiJBcXXDrSBub3MgY29ub2NpbW9zLiIscHJlZ3VudGE6IsK/UXXDqSBzb25pZG8gcmVjb25vY2VzIHBlbnNhbmRvIGVuIGxhIEVPST8iLHJlc3B1ZXN0YToidGFtYm9yZXMiLG1lbnNhamU6IkhhYmxhbmRvIGVuIGxhIGVzcXVpbmEgZXNwZXJhbmRvIHF1ZSB0ZSByZWNvZ2llcmFuLi4uIn0sCiB7aWQ6Im1hdGlsZGUiLG5vbWJyZToiUmVzdGF1cmFudGUgTWF0aWxkZSIsbGF0OjQwLjE4Nixsb246LTMuNjg0LGhpc3RvcmlhOiJOdWVzdHJhIHByaW1lcmEgY2VuYSBmb3JtYWwuIixwcmVndW50YToiwr9RdcOpIGNvbG9yIGRlIHBvbG8gbGxldmFiYSB5byBlc2UgZMOtYT8iLHJlc3B1ZXN0YToiYXp1bCIsbWVuc2FqZToiQXBveWFkb3MgbHVlZ28gZW4gZWwgY29jaGUgZGVzcHXDqXMgZGUgY2VuYXIuLi4ifSwKIHtpZDoicm92YW5pZW1pIixub21icmU6IlJvdmFuaWVtaSIsbGFwOnRydWUsbGF0OjY2LjUwMzksbG9uOjI1LjcyOTQsaGlzdG9yaWE6Ik51ZXN0cm8gcHJpbWVyIHZpYWplIGp1bnRpdG9zLiIscHJlZ3VudGE6IsK/RW4gcXXDqSBhZXJvcHVlcnRvIHBhc2Ftb3MgYSBsYSBpZGE/IixyZXNwdWVzdGE6ImR1c3NlbGRvcmZ8ZHVzc2VsZG9yZiBhaXJwb3J0fGFlcm9wdWVydG8gZGUgZHVzc2VsZG9yZiIsbWVuc2FqZToiRG9ybWlzdGUgYXBveWFkYSBlbiBtaSBjdWVycG8sIGPDs21vIG1lIGVuY2FudMOzLi4uIn0sCiB7aWQ6ImxhcG9uaWEiLG5vbWJyZToiRG9uZGUgdGUgcGVkw60gc2FsaXIiLHNpdGlvOiJMYXBvbmlhICh1biByaW5jw7NuIHNlY3JldG8pIixsYXA6dHJ1ZSxsYXQ6NjYuNTgyNixsb246MjYuMDI1MSxoaXN0b3JpYToiQXF1w60gdGUgcGVkw60gc2FsaXIuIixwcmVndW50YToiwr9RdcOpIHRlbsOtYW1vcyBlbmZyZW50ZSBjdWFuZG8gcGFzw7MgZXN0bz8iLHJlc3B1ZXN0YToibGFnb3x1biBsYWdvfGxhZ28gaGVsYWRvfHVuIGxhZ28gaGVsYWRvIixtZW5zYWplOiJDYXNpIGxsb3JvIGVzYSBub2NoZSwgZnVlIGluY3Jlw61ibGUuLi4ifSwKIHtpZDoiY2hpbmNob24iLG5vbWJyZToiQ2hpbmNow7NuIixsYXQ6NDAuMTQwNixsb246LTMuNDIyNyxoaXN0b3JpYToiTnVlc3RyYSBwcmltZXJhIGVzY2FwYWRhLiIscHJlZ3VudGE6IsK/SGFiw61hIGxsYXZlPyIscmVzcHVlc3RhOiJubyIsbWVuc2FqZToiVmF5YSBkaWl0YSBtZSBoaWNpc3RlIHBhc2FyLi4uIDpgKSJ9LAoge2lkOiJhdmlsYSIsbm9tYnJlOiLDgXZpbGEiLGxhdDo0MC42NTY1LGxvbjotNC42ODE4LGhpc3RvcmlhOiJBcXXDrSBjdW1wbGltb3MgNiBtZXNlcy4iLHByZWd1bnRhOiLCv1F1w6kgdGUgZ3VzdMOzIG3DoXMgZGUgZXNhIGNlbmE/IixyZXNwdWVzdGE6InRhcnRhciIsbWVuc2FqZToiQ8OzbW8gc2UgY29tacOzIHkgY8OzbW8gbWUgZ3VzdMOzIHR1IHJlZ2Fsby4uLiJ9LAoge2lkOiJ0b2xlZG8iLG5vbWJyZToiVG9sZWRvIixsYXQ6MzkuODYyOCxsb246LTQuMDI3MyxoaXN0b3JpYToiTnVlc3RyYSB2aXNpdGEgYSBUb2xlZG8uIixwcmVndW50YToiwr9Dw7NtbyBzZSBsbGFtYWJhIGVsIGVkaWZpY2lvIHF1ZSB2aXNpdGFtb3M/IixyZXNwdWVzdGE6ImFsY2F6YXIiLG1lbnNhamU6IsK/WSBsbyBiaWVuIHF1ZSBub3MgbG8gcGFzYW1vcyBlbiBlbCB0b3VyPyJ9LAoge2lkOiJ2YWxlbmNpYSIsbm9tYnJlOiJWYWxlbmNpYSIsbGF0OjM5LjQ2OTksbG9uOi0wLjM3NjMsaGlzdG9yaWE6IlZpYWplIGNvbiBtaXMgcHJpbWFzLiIscHJlZ3VudGE6IsK/Q29udHJhIHF1acOpbiBqdWfDsyBFc3Bhw7FhPyIscmVzcHVlc3RhOiJmcmFuY2lhIixtZW5zYWplOiJUZSBjb3N0w7MsIHBlcm8uLi4gwr95IGxvIGJpZW4gcXVlIGxvIHBhc2Ftb3M/In0sCiB7aWQ6InNhbnRhbmRlciIsbm9tYnJlOiJTYW50YW5kZXIiLGxhdDo0My40NjIzLGxvbjotMy44MDk5LGhpc3RvcmlhOiJOdWVzdHJvIHByaW1lciB2aWFqZSBzb2xvcy4iLHByZWd1bnRhOiLCv0TDs25kZSBub3MgY29taW1vcyBlc2UgY2FjaG9wbz8iLHJlc3B1ZXN0YToiYnVmb25lcyBkZSBwcmlhfGJ1Zm9uZXN8bG9zIGJ1Zm9uZXMgZGUgcHJpYSIsbWVuc2FqZToiRXNlIGTDrWEgY29tcHJlbmTDrSBsbyBib25pdG8gcXVlIGliYSBhIHNlciB2aXZpciBjb250aWdvIHkgc2FiZXIgcXVlIG1lIHZhcyBhIGN1aWRhci4uLiJ9LAoge2lkOiJjYWRpeiIsbm9tYnJlOiJDw6FkaXoiLGxhdDozNi41MjcxLGxvbjotNi4yODg2LGhpc3RvcmlhOiJWaWFqZSBhIGNvbm9jZXIgYSBTYW11ZWwgeSBQYXVsYS4iLHByZWd1bnRhOiLCv1F1w6kgYmViaW1vcyB1biBwb2NvIGVuIGVzZSB2aWFqZT8iLHJlc3B1ZXN0YToibW9qaXRvfG1vaml0b3N8dW4gbW9qaXRvfHVub3MgbW9qaXRvcyIsbWVuc2FqZToiTm9zIGVuZmFkYW1vcywgcGVybyBjw7NtbyBkaXNmcnV0w6kgbGEgaWRhLCBlbCB2aWFqZSB5IGxhIHZ1ZWx0YS4uLiJ9Cl07CnZhciBGSU5BTD0iUHVlcyB5YSBlc3TDoSwgbG8gaGFzIGNvbnNlZ3VpZG8uLi4geSBzaW4gaGFjZXIgdHJhbXBhcyAobyBlc28gcXVpZXJvIGNyZWVyIPCfmI8pLlxuXG5TaSBsbyBwaWVuc2FzLCB0b2RvIGVtcGV6w7MgZW4gdW5hIGVzcXVpbmEgZGUgbGEgRU9JLCBjb24gdW5vcyB0YW1ib3JlcyBkZSBmb25kbyB5IHlvIGhhY2nDqW5kb21lIGVsIGludGVyZXNhbnRlIG1pZW50cmFzIGVzcGVyYWJhcyBhIHF1ZSB0ZSByZWNvZ2llcmFuLiBRdWnDqW4gbWUgaWJhIGEgZGVjaXIgcXVlIGRlIGFow60gYWNhYmFyw61hbW9zIGNlbmFuZG8gZW4gZWwgTWF0aWxkZSB5IGx1ZWdvIGFwb3lhZG9zIGVuIGVsIGNvY2hlIHNpbiBxdWVyZXIgaXJub3MgYSBjYXNhLlxuXG5EZXNwdcOpcyB2aW5vIExhcG9uaWEuIERvcm1pc3RlIGVuY2ltYSBkZSBtw60gZW4gZWwgYWVyb3B1ZXJ0byB5IHlvIG5vIG1lIG1vdsOtIG5pIHVuIG1pbMOtbWV0cm8sIHkgbHVlZ28sIGRlbGFudGUgZGUgYXF1ZWwgbGFnbywgdGUgcGVkw60gc2FsaXIuIENhc2kgbGxvcm8sIHlhIGxvIHNhYmVzLi4uIHkgbm8gbWUgYXJyZXBpZW50byBkZSBuYWRhLlxuXG5ZIGEgcGFydGlyIGRlIGFow60sIGEgbm8gcGFyYXI6IENoaW5jaMOzbiAoY3XDoW50YXMgY29zYXMgaGljaW1vcyBhaMOtIDspIDspKSwgbnVlc3Ryb3MgNiBtZXNlcyBlbiDDgXZpbGEgY29uIGVzYSBjZW5hIHRhbiBpbnRlcmVzYW50ZSBxdWUgdHV2aW1vcywgVG9sZWRvIHkgZWwgdG91ciwgVmFsZW5jaWEgY29uIG1pcyBwcmltYXMgeSB1biBFc3Bhw7FhLUZyYW5jaWEgcXVlIHRlIGNvc3TDsywgQ2FudGFicmlhIHkgZWwgY2FjaG9wbyBkZSBsb3MgQnVmb25lcywgbG8gcXVlIHBhc8OzIGVsIGTDrWEgc2lndWllbnRlLCBlc28gZnVlIGN1YW5kbyBtZSBkaSBjdWVudGEgZGUgbG8gYm9uaXRvIHF1ZSB2YSBhIHNlciB2aXZpciBjb250aWdvLCB5IEPDoWRpeiwgY29uIHR1IG51ZXZhIGFtaWdhIHkgaGFzdGEgY29uIG51ZXN0cm8gZW5mYWRvIGluY2x1aWRvLlxuXG5IYSBzaWRvIHVuIGHDsW8gbGxlbm8gZGUgdmlhamVzLCBkZSByaXNhcywgZGUgYWxnw7puIHF1ZSBvdHJvIG1vc3F1ZW8geSwgc29icmUgdG9kbywgZGUgdGkuIEdyYWNpYXMgcG9yIGN1aWRhcm1lLCBwb3IgYWd1YW50YXJtZSB5IHBvciBoYWNlciBxdWUgY3VhbHF1aWVyIHNpdGlvLCBhdW5xdWUgc2VhIHVuIGNvY2hlIGFwYXJjYWRvLCBzZSBzaWVudGEgY29tbyBjYXNhLlxuXG5Fc3RlIG1hcGEgc2UgcXVlZGEgcGVxdWXDsW8gcGFyYSB0b2RvIGxvIHF1ZSBub3MgcXVlZGEgcG9yIHZpdmlyLi4uIGFzw60gcXVlIHZlIGhhY2llbmRvIGh1ZWNvLCBxdWUgcGllbnNvIGxsZW5hcmxvIGRlIG1hcmNhcy5cblxuVGUgcXVpZXJvIG11Y2jDrXNpbW8g4p2k77iPIjsK"),c=>c.charCodeAt(0))));
+const S=v=>Math.round(v);
+const P=(lon,lat)=>[(lon+10)*62,(44.6-lat)*78];
+const ES=[[-8.9,43.2],[-8.2,43.7],[-7,43.55],[-5.5,43.55],[-3.8,43.48],[-1.8,43.38],[-1.5,43.1],[0.7,42.8],[3.2,42.4],[3.2,41.9],[2.1,41.3],[0.9,40.9],[0,40],[-0.3,39.4],[0.2,38.8],[-0.5,38.3],[-0.8,37.6],[-1.6,37.1],[-2.2,36.7],[-4.4,36.7],[-5.6,36],[-6.3,36.5],[-6.4,36.9],[-7.4,37.2],[-7.5,37.6],[-7,38.2],[-7.3,38.8],[-7,39.6],[-7.5,39.7],[-6.9,40.3],[-6.8,41],[-6.2,41.6],[-6.6,41.95],[-8.1,41.85],[-8.9,42.1]];
+let hechos={};try{hechos=JSON.parse(localStorage.getItem("mapa_rec_v2")||"{}")}catch(e){}
+const svg=document.getElementById("map");
+function draw(){
+ let h=`<polygon class="land" points="${ES.map(p=>P(...p).map(S).join(",")).join(" ")}"/>`;
+ h+=`<text class="lbl" x="230" y="620" style="font-size:30px;opacity:.5">España</text>`;
+ h+=`<rect class="inset" x="640" y="20" width="240" height="170" rx="10"/><text class="lbl" x="660" y="52">Laponia ❄️</text>`;
+ const L=(lon,lat)=>[660+(lon-25.5)*300,170-(lat-66.4)*600];
+ LUGARES.forEach((l,i)=>{
+  let [x,y]=l.lap?L(l.lon,l.lat):P(l.lon,l.lat);
+  if(l.id==="eoi"){x-=10;y-=8} if(l.id==="matilde"){x+=10;y+=8}
+  const ok=hechos[l.id];const nx=LUGARES.findIndex(q=>!hechos[q.id])===i;
+  h+=`<g class="pin${nx?' next':''}" data-i="${i}"><circle cx="${S(x)}" cy="${S(y)}" r="11" fill="${ok?'#b23a3a':'#4a2f1b'}" stroke="#f3e6c8" stroke-width="3"/>
+  <text x="${S(x)}" y="${S(y)+5}" text-anchor="middle" font-size="13" fill="#fff">${ok?'♥':nx?'?':'🔒'}</text>
+  ${ok?`<text class="lbl" x="${S(x)+14}" y="${S(y)-10}" style="font-size:18px">${l.nombre}</text>`:''}</g>`;
+ });
+ svg.innerHTML=h;
+ svg.querySelectorAll(".pin").forEach(g=>g.onclick=()=>abrir(+g.dataset.i));
+ document.getElementById("prog").style.width=(Object.keys(hechos).length/LUGARES.length*100)+"%";
+}
+const modal=document.getElementById("modal"),card=document.getElementById("card");
+modal.onclick=e=>{if(e.target===modal)cerrar()};
+function cerrar(){modal.classList.remove("on")}
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim().replace(/^(el|la|los|las) /,"");
+function abrir(i){
+ const l=LUGARES[i];
+ if(hechos[l.id]){mostrar(l);return}
+ const sig=LUGARES.findIndex(q=>!hechos[q.id]);
+ if(i!==sig){card.innerHTML=`<button class="x" onclick="cerrar()">×</button><h2>🚫 ¡Eh, eh, eh!</h2><p>Aquí no se cuela nadie. Los recuerdos van en orden, como la cola del súper. Busca la marca que parpadea 😏</p>`;modal.classList.add("on");return}
+ card.innerHTML=`<button class="x" onclick="cerrar()">×</button><h2>📍 ${l.sitio||l.nombre}</h2>
+ <p>${l.pregunta}</p><input id="resp" placeholder="Tu respuesta"><div class="err" id="err"></div><button id="go">Desbloquear</button>`;
+ modal.classList.add("on");
+ const go=()=>{const r=document.getElementById("resp").value;
+  if(l.respuesta.split("|").some(a=>norm(r)===norm(a))){hechos[l.id]=1;try{localStorage.setItem("mapa_rec_v2",JSON.stringify(hechos))}catch(e){}draw();mostrar(l)}
+  else document.getElementById("err").textContent="Error 404: memoria no encontrada 🤨 Prueba otra vez"};
+ document.getElementById("go").onclick=go;document.getElementById("resp").onkeydown=e=>{if(e.key==="Enter")go()};
+}
+function mostrar(l){
+ const todo=Object.keys(hechos).length===LUGARES.length;
+ card.innerHTML=`<button class="x" onclick="cerrar()">×</button><h2>❤️ ${l.nombre}</h2><p><em>${l.historia}</em></p><p>${l.mensaje}</p>${todo?`<button id="fin">Continuar ➜</button>`:''}`;
+ modal.classList.add("on");
+ if(todo)document.getElementById("fin").onclick=finalCard;
+}
+function finalCard(){
+ card.innerHTML=`<button class="x" onclick="cerrar()">×</button><h2>🎉 ¡Lo has desbloqueado todo!</h2><p style="white-space:pre-line">${FINAL}</p>`;
+ modal.classList.add("on");
+}
+document.getElementById("reset").onclick=()=>{card.innerHTML=`<button class="x" onclick="cerrar()">×</button><h2>¿Empezar de cero?</h2><p>Se borrarán todos los recuerdos desbloqueados.</p><button id="si">Sí, reiniciar</button>`;modal.classList.add("on");document.getElementById("si").onclick=()=>{hechos={};try{localStorage.removeItem("mapa_rec_v2")}catch(e){}draw();cerrar()}};
+draw();
+</script></body></html>
